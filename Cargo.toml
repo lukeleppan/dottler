@@ -1,8 +1,15 @@
 [package]
 name = "dottler"
 version = "0.1.0"
+authors = ["Luke Leppan"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.74"
+description = "Dottle you dotfiles"
+readme = "README.md"
+repository = "https://github.com/lukeleppan/dottler"
+license = "Apache-2.0"
+license-file = "LICENSE"
+keywords = ["dotfiles"]
+categories = ["command-line-utilities"]
 
 [dependencies]
