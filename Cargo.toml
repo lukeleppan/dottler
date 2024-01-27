@@ -7,7 +7,7 @@ rust-version = "1.74"
 description = "Dottle you dotfiles"
 readme = "README.md"
 repository = "https://github.com/lukeleppan/dottler"
-license-file = "LICENSE"
+license = "Apache-2.0"
 keywords = ["dotfiles"]
 categories = ["command-line-utilities"]
 
