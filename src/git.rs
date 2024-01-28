@@ -1,5 +1,6 @@
 use std::{
     env,
+    ffi::OsString,
     path::{Path, PathBuf},
 };
 
@@ -15,6 +16,19 @@ pub fn init_bare(repo_path: PathBuf) -> Repository {
             );
 
             std::process::exit(exitcode::CANTCREAT);
+        }
+    }
+}
+
+pub fn add_remote(repo: Repository, remote_url: &str) {
+    match repo.remote("origin", remote_url) {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!(
+                "Failed to add remote to dottler repository!\nMore Info: {}",
+                e.message()
+            );
+            std::process::exit(exitcode::IOERR);
         }
     }
 }
@@ -64,5 +78,69 @@ pub fn add_to_index(repo: Repository, spec: Vec<String>) -> Result<(), git2::Err
     }
 
     index.write()?;
+
+    let signature = repo.signature()?;
+    let tree_id = index.write_tree()?;
+    let tree = repo.find_tree(tree_id)?;
+
+    let parents = if let Some(head) = repo.head().ok().and_then(|h| h.target()) {
+        vec![repo.find_commit(head)?]
+    } else {
+        Vec::new()
+    };
+
+    let parents = parents.iter().collect::<Vec<_>>();
+
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        format!(
+            "{} Add files to dottler",
+            chrono::Local::now().timestamp_millis()
+        )
+        .as_str(),
+        &tree,
+        &parents,
+    )?;
+
+    Ok(())
+}
+
+pub fn update_tracked_files(repo: Repository) -> Result<(), git2::Error> {
+    let mut index = repo.index()?;
+
+    for entry in repo.index()?.iter() {
+        let path = Path::new(std::str::from_utf8(&entry.path).unwrap());
+        if path.exists() {
+            index.add_path(path)?;
+        }
+    }
+
+    // Write the index as a tree
+    let tree_oid = index.write_tree()?;
+    let tree = repo.find_tree(tree_oid)?;
+
+    // Prepare for the commit
+    let signature = repo.signature()?;
+    let parent_commit = repo.head()?.peel_to_commit()?;
+    let parents = vec![&parent_commit];
+
+    // Commit
+    repo.commit(
+        Some("HEAD"),
+        &signature,
+        &signature,
+        "{} Update dottler files",
+        &tree,
+        &parents,
+    )?;
+
+    Ok(())
+}
+
+pub fn pull_remote(repo: Repository) -> Result<(), git2::Error> {
+    repo.find_remote("origin")?.fetch(&["master"], None, None)?;
+
     Ok(())
 }

@@ -1,10 +1,13 @@
 mod commands;
 mod git;
+mod utils;
 
 use clap::{command, Parser};
 use clap::{Args, Subcommand};
 
-use commands::{handle_add, handle_init, handle_link, handle_remove, handle_status, handle_sync};
+use commands::{
+    handle_add, handle_clone, handle_init, handle_link, handle_remove, handle_status, handle_sync,
+};
 
 #[derive(Debug, Parser)]
 #[command(name = "dottler")]
@@ -26,6 +29,9 @@ pub enum Commands {
     #[command(name = "link")]
     Link(LinkArgs),
 
+    #[command(name = "clone")]
+    Clone(CloneArgs),
+
     #[command(name = "add")]
     Add(AddArgs),
 
@@ -45,8 +51,13 @@ pub struct LinkArgs {
 }
 
 #[derive(Debug, Args)]
+pub struct CloneArgs {
+    pub url: String,
+}
+
+#[derive(Debug, Args)]
 pub struct AddArgs {
-    spec: Vec<String>,
+    files: Vec<String>,
 }
 
 #[derive(Debug, Args)]
@@ -59,6 +70,7 @@ fn main() {
     match args.command {
         Commands::Init => handle_init(),
         Commands::Link(args) => handle_link(args),
+        Commands::Clone(args) => handle_clone(args),
         Commands::Add(args) => handle_add(args),
         Commands::Remove(args) => handle_remove(args),
         Commands::Sync => handle_sync(),

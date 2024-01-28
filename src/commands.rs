@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf};
 
-use crate::git;
-use crate::{AddArgs, LinkArgs, RemoveArgs};
+use crate::{git, utils};
+use crate::{AddArgs, CloneArgs, LinkArgs, RemoveArgs};
 
 pub fn handle_init() {
     let repo = git::init_bare(get_dottler_path());
@@ -17,15 +17,25 @@ pub fn handle_init() {
 }
 
 pub fn handle_link(args: LinkArgs) {
+    let repo = git::open_bare(get_dottler_path());
+    git::add_remote(repo, &args.url);
+}
+
+pub fn handle_clone(args: CloneArgs) {
     let _repo = git::clone_bare(&args.url, get_dottler_path());
 }
 
 pub fn handle_add(args: AddArgs) {
     let repo = git::open_bare(get_dottler_path());
 
+    let paths = utils::expand_and_normalize_paths(
+        args.files.clone(),
+        get_home_path(),
+        env::current_dir().expect("Failed to get current directory"),
+    );
     repo.set_workdir(get_home_path().as_path(), true).unwrap();
 
-    match git::add_to_index(repo, args.spec) {
+    match git::add_to_index(repo, paths) {
         Ok(_) => println!("Added files to dottler index"),
         Err(e) => {
             eprintln!(
@@ -43,7 +53,20 @@ pub fn handle_add(args: AddArgs) {
 
 pub fn handle_remove(_args: RemoveArgs) {}
 
-pub fn handle_sync() {}
+pub fn handle_sync() {
+    let repo = git::open_bare(get_dottler_path());
+
+    match git::update_tracked_files(repo) {
+        Ok(_) => println!("Updated tracked files"),
+        Err(e) => {
+            eprintln!(
+                "Failed to update tracked files!\nMore Info: {}",
+                e.message()
+            );
+            std::process::exit(exitcode::IOERR);
+        }
+    };
+}
 
 pub fn handle_status() {}
 
