@@ -1,28 +1,142 @@
-use git2::Repository;
 use std::{env, path::PathBuf};
 
+use crate::git;
 use crate::{AddArgs, LinkArgs, RemoveArgs};
 
 pub fn handle_init() {
-    let home_dir = env::var("HOME").unwrap();
-    let repo_path = PathBuf::from(home_dir).join(".dottler");
+    let repo = git::init_bare(get_dottler_path());
 
-    let repo = match Repository::init(repo_path) {
-        Ok(repo) => repo,
-        Err(_) => panic!("Failed to initialize repository"),
-    };
+    repo.set_workdir(get_home_path().as_path(), true).unwrap();
+    let mut config = repo.config().unwrap();
+    config.set_str("status.showUntrackedFiles", "no").unwrap();
+
     println!(
-        r"Initialized empty Git repository in {}.",
-        repo.workdir().unwrap().to_string_lossy()
+        "Initialized empty dottler repository in {}",
+        repo.path().display()
     );
 }
 
-pub fn handle_link(_args: LinkArgs) {}
+pub fn handle_link(args: LinkArgs) {
+    let _repo = git::clone_bare(&args.url, get_dottler_path());
+}
 
-pub fn handle_add(_args: AddArgs) {}
+pub fn handle_add(args: AddArgs) {
+    let repo = git::open_bare(get_dottler_path());
+
+    repo.set_workdir(get_home_path().as_path(), true).unwrap();
+
+    match git::add_to_index(repo, args.spec) {
+        Ok(_) => println!("Added files to dottler index"),
+        Err(e) => {
+            eprintln!(
+                "Failed to add files to dottler index!\nMore Info: {}",
+                e.message()
+            );
+
+            // print name of all possible errors
+            print_git_error_code(e.code());
+
+            std::process::exit(exitcode::IOERR);
+        }
+    }
+}
 
 pub fn handle_remove(_args: RemoveArgs) {}
 
 pub fn handle_sync() {}
 
 pub fn handle_status() {}
+
+fn get_dottler_path() -> PathBuf {
+    get_home_path().join(".dottler")
+}
+
+fn get_home_path() -> PathBuf {
+    PathBuf::from(env::var("HOME").unwrap())
+}
+
+fn print_git_error_code(error_code: git2::ErrorCode) {
+    match error_code {
+        git2::ErrorCode::GenericError => {
+            eprintln!("Error: GenericError");
+        }
+        git2::ErrorCode::BufSize => {
+            eprintln!("Error: BufSize");
+        }
+        git2::ErrorCode::HashsumMismatch => {
+            eprintln!("Error: HashsumMismatch");
+        }
+        git2::ErrorCode::IndexDirty => {
+            eprintln!("Error: IndexDirty");
+        }
+        git2::ErrorCode::Owner => {
+            eprintln!("Error: Owner");
+        }
+        git2::ErrorCode::ApplyFail => {
+            eprintln!("Error: ApplyFail");
+        }
+        git2::ErrorCode::NotFound => {
+            eprintln!("Error: NotFound");
+        }
+        git2::ErrorCode::Invalid => {
+            eprintln!("Error: Invalid");
+        }
+        git2::ErrorCode::Exists => {
+            eprintln!("Error: Exists");
+        }
+        git2::ErrorCode::Ambiguous => {
+            eprintln!("Error: Ambiguous");
+        }
+        git2::ErrorCode::User => {
+            eprintln!("Error: User");
+        }
+        git2::ErrorCode::BareRepo => {
+            eprintln!("Error: Barerepo");
+        }
+        git2::ErrorCode::UnbornBranch => {
+            eprintln!("Error: UnbornBranch");
+        }
+        git2::ErrorCode::Unmerged => {
+            eprintln!("Error: Unmerged");
+        }
+        git2::ErrorCode::NotFastForward => {
+            eprintln!("Error: Nonfastforward");
+        }
+        git2::ErrorCode::InvalidSpec => {
+            eprintln!("Error: InvalidSpec");
+        }
+        git2::ErrorCode::Conflict => {
+            eprintln!("Error: Conflict");
+        }
+        git2::ErrorCode::Locked => {
+            eprintln!("Error: Locked");
+        }
+        git2::ErrorCode::Modified => {
+            eprintln!("Error: Modified");
+        }
+        git2::ErrorCode::Auth => {
+            eprintln!("Error: Auth");
+        }
+        git2::ErrorCode::Certificate => {
+            eprintln!("Error: Certificate");
+        }
+        git2::ErrorCode::Applied => {
+            eprintln!("Error: Applied");
+        }
+        git2::ErrorCode::Peel => {
+            eprintln!("Error: Peel");
+        }
+        git2::ErrorCode::Eof => {
+            eprintln!("Error: EOF");
+        }
+        git2::ErrorCode::Uncommitted => {
+            eprintln!("Error: Uncommitted");
+        }
+        git2::ErrorCode::Directory => {
+            eprintln!("Error: Directory");
+        }
+        git2::ErrorCode::MergeConflict => {
+            eprintln!("Error: MergeConflict");
+        }
+    }
+}
