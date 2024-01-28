@@ -66,6 +66,31 @@ pub fn handle_sync() {
             std::process::exit(exitcode::IOERR);
         }
     };
+
+    // let repo = git::open_bare(get_dottler_path());
+
+    // match git::pull_remote(repo) {
+    //     Ok(_) => println!("Pulled changes from remote"),
+    //     Err(e) => {
+    //         eprintln!(
+    //             "Failed to pull changes from remote!\nMore Info: {}",
+    //             e.message()
+    //         );
+    //         std::process::exit(exitcode::IOERR);
+    //     }
+    // };
+
+    let repo = git::open_bare(get_dottler_path());
+    match git::push_remote(repo) {
+        Ok(_) => println!("Pushed changes to remote"),
+        Err(e) => {
+            eprintln!(
+                "Failed to push changes to remote!\nMore Info: {}",
+                e.message()
+            );
+            std::process::exit(exitcode::IOERR);
+        }
+    };
 }
 
 pub fn handle_status() {}

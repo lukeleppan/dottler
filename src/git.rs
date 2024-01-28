@@ -1,6 +1,5 @@
 use std::{
     env,
-    ffi::OsString,
     path::{Path, PathBuf},
 };
 
@@ -131,7 +130,11 @@ pub fn update_tracked_files(repo: Repository) -> Result<(), git2::Error> {
         Some("HEAD"),
         &signature,
         &signature,
-        "{} Update dottler files",
+        format!(
+            "{} Update dottler files",
+            chrono::Local::now().timestamp_millis()
+        )
+        .as_str(),
         &tree,
         &parents,
     )?;
@@ -139,8 +142,22 @@ pub fn update_tracked_files(repo: Repository) -> Result<(), git2::Error> {
     Ok(())
 }
 
-pub fn pull_remote(repo: Repository) -> Result<(), git2::Error> {
-    repo.find_remote("origin")?.fetch(&["master"], None, None)?;
+// pub fn pull_remote(repo: Repository) -> Result<(), git2::Error> {
+//     repo.find_remote("origin")?
+//         .fetch(&["master"], None, None)
+//         .unwrap();
+//
+//     Ok(())
+// }
 
+pub fn push_remote(repo: Repository) -> Result<(), git2::Error> {
+    let mut remote = repo.find_remote("origin")?;
+    let mut callbacks = RemoteCallbacks::new();
+    callbacks.credentials(|_user, username_from_url, _allowed_types| {
+        Cred::ssh_key_from_agent(username_from_url.unwrap())
+    });
+    let mut push_options = git2::PushOptions::new();
+    push_options.remote_callbacks(callbacks);
+    remote.push(&["refs/heads/master"], Some(&mut push_options))?;
     Ok(())
 }
