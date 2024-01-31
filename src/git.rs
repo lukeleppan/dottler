@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
 };
 
@@ -105,10 +105,19 @@ pub fn add_to_index(repo: Repository, spec: Vec<String>) -> Result<(), git2::Err
     let mut index = repo.index().expect("Failed to get index");
     for pathspec in spec {
         index.add_path(Path::new(&pathspec))?;
+        println!("Added {} to index", pathspec);
     }
 
     commit_to_repo(repo, &mut index, "Add new files to Dottler")?;
 
+    Ok(())
+}
+
+pub fn load_gitignore(repo: &Repository, home_path: &Path) -> Result<(), git2::Error> {
+    let gitignore_path = home_path.join(".gitignore");
+    let gitignore = fs::read_to_string(gitignore_path).expect("Failed to read gitignore file");
+
+    repo.add_ignore_rule(gitignore.as_str())?;
     Ok(())
 }
 

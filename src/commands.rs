@@ -1,5 +1,6 @@
 use std::{env, path::PathBuf};
 
+use crate::git::load_gitignore;
 use crate::{git, utils};
 use crate::{AddArgs, CloneArgs, LinkArgs, RemoveArgs};
 
@@ -28,11 +29,22 @@ pub fn handle_clone(args: CloneArgs) {
 pub fn handle_add(args: AddArgs) {
     let repo = git::open_bare(get_dottler_path());
 
+    match load_gitignore(&repo, &get_home_path()) {
+        Ok(_) => {
+            println!("Loaded .gitignore file");
+        }
+        Err(_) => {
+            eprintln!("Warning: Failed to load .gitignore file!");
+        }
+    }
+
     let paths = utils::expand_and_normalize_paths(
         args.files.clone(),
         get_home_path(),
         env::current_dir().expect("Failed to get current directory"),
     );
+    let paths = utils::filter_ignored(&repo, paths);
+
     repo.set_workdir(get_home_path().as_path(), true).unwrap();
 
     match git::add_to_index(repo, paths) {
