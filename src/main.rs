@@ -62,7 +62,7 @@ pub struct AddArgs {
 
 #[derive(Debug, Args)]
 pub struct RemoveArgs {
-    file: String,
+    files: Vec<String>,
 }
 
 fn main() {

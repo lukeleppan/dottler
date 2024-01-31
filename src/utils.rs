@@ -19,6 +19,10 @@ pub fn expand_and_normalize_paths(
         if path.is_dir() {
             for entry in WalkDir::new(&path) {
                 let entry = entry.unwrap();
+                let path_str = entry.path().to_str().unwrap();
+                if path_str.contains(".git") {
+                    continue;
+                }
                 if entry.file_type().is_file() {
                     let relative_path = convert_to_relative_path(entry.path(), &homedir);
                     println!("{:?}", relative_path);

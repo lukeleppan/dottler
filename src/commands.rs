@@ -51,7 +51,26 @@ pub fn handle_add(args: AddArgs) {
     }
 }
 
-pub fn handle_remove(_args: RemoveArgs) {}
+pub fn handle_remove(args: RemoveArgs) {
+    let repo = git::open_bare(get_dottler_path());
+
+    let paths = utils::expand_and_normalize_paths(
+        args.files.clone(),
+        get_home_path(),
+        env::current_dir().expect("Failed to get Current Workdir."),
+    );
+
+    match git::remove_tracked_files(repo, paths) {
+        Ok(_) => println!("Successfully removed files from Dottler"),
+        Err(e) => {
+            eprintln!(
+                "Failed to remove tracked files!\nMore Info: {}",
+                e.message()
+            );
+            std::process::exit(exitcode::IOERR);
+        }
+    }
+}
 
 pub fn handle_sync() {
     let repo = git::open_bare(get_dottler_path());

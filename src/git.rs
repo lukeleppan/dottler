@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use git2::{Cred, RemoteCallbacks, Repository};
+use git2::{Cred, Index, RemoteCallbacks, Repository};
 
 pub fn init_bare(repo_path: PathBuf) -> Repository {
     match Repository::init_bare(repo_path) {
@@ -70,12 +70,11 @@ pub fn open_bare(repo_path: PathBuf) -> Repository {
     }
 }
 
-pub fn add_to_index(repo: Repository, spec: Vec<String>) -> Result<(), git2::Error> {
-    let mut index = repo.index().expect("Failed to get index");
-    for pathspec in spec {
-        index.add_path(Path::new(&pathspec))?;
-    }
-
+pub fn commit_to_repo(
+    repo: Repository,
+    index: &mut Index,
+    message: &str,
+) -> Result<(), git2::Error> {
     index.write()?;
 
     let signature = repo.signature()?;
@@ -94,14 +93,33 @@ pub fn add_to_index(repo: Repository, spec: Vec<String>) -> Result<(), git2::Err
         Some("HEAD"),
         &signature,
         &signature,
-        format!(
-            "{} Add files to dottler",
-            chrono::Local::now().timestamp_millis()
-        )
-        .as_str(),
+        format!("{} {}", chrono::Local::now().timestamp_millis(), message,).as_str(),
         &tree,
         &parents,
     )?;
+
+    Ok(())
+}
+
+pub fn add_to_index(repo: Repository, spec: Vec<String>) -> Result<(), git2::Error> {
+    let mut index = repo.index().expect("Failed to get index");
+    for pathspec in spec {
+        index.add_path(Path::new(&pathspec))?;
+    }
+
+    commit_to_repo(repo, &mut index, "Add new files to Dottler")?;
+
+    Ok(())
+}
+
+pub fn remove_tracked_files(repo: Repository, paths: Vec<String>) -> Result<(), git2::Error> {
+    let mut index = repo.index()?;
+
+    for path in paths {
+        index.remove_path(Path::new(&path))?;
+    }
+
+    commit_to_repo(repo, &mut index, "Remove files from Dottler")?;
 
     Ok(())
 }
@@ -116,28 +134,7 @@ pub fn update_tracked_files(repo: Repository) -> Result<(), git2::Error> {
         }
     }
 
-    // Write the index as a tree
-    let tree_oid = index.write_tree()?;
-    let tree = repo.find_tree(tree_oid)?;
-
-    // Prepare for the commit
-    let signature = repo.signature()?;
-    let parent_commit = repo.head()?.peel_to_commit()?;
-    let parents = vec![&parent_commit];
-
-    // Commit
-    repo.commit(
-        Some("HEAD"),
-        &signature,
-        &signature,
-        format!(
-            "{} Update dottler files",
-            chrono::Local::now().timestamp_millis()
-        )
-        .as_str(),
-        &tree,
-        &parents,
-    )?;
+    commit_to_repo(repo, &mut index, "Update Dottler files")?;
 
     Ok(())
 }
