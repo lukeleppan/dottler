@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] Add .dottlerignore, or just use .gitignore
+- [x] Add .dottlerignore, or just use .gitignore
 - [ ] Fix Pull
 - [ ] Review Code add additional basic features
 - [ ] Begin Dottle features
